@@ -1,5 +1,56 @@
+name: Build Dropbear armv7 Android9
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NDK_ROOT: ${{ github.workspace }}/android-ndk-r25c
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Cache NDK
+        uses: actions/cache@v4
+        with:
+          path: android-ndk-r25c
+          key: ndk-r25c
+
+      - name: Download NDK r25c
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip android-ndk-r25c-linux.zip
+
       - name: Clone dropbear 2024.86 source AND apply patch
         run: |
           git clone --depth 1 https://github.com/mkj/dropbear.git -b DROPBEAR_2024.86
           chmod +x ./patch_hardcode_root.sh
           ./patch_hardcode_root.sh
+
+      - name: Compile dropbear
+        run: |
+          set -e
+          export NDK=${{ env.NDK_ROOT }}
+          export TARGET=armv7a-linux-androideabi24
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          export CC=${TOOLCHAIN}/bin/${TARGET}-clang
+          export CXX=${TOOLCHAIN}/bin/${TARGET}-clang++
+          export AR=${TOOLCHAIN}/bin/llvm-ar
+          export RANLIB=${TOOLCHAIN}/bin/llvm-ranlib
+          export STRIP=${TOOLCHAIN}/bin/llvm-strip
+          cd dropbear
+          ./configure --host=${TARGET} --disable-pam
+          make PROGRAMS="dropbear dropbearkey"
+          $STRIP dropbear dropbearkey
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: dropbear-armv7-android9
+          path: |
+            dropbear/dropbear
+            dropbear/dropbearkey
