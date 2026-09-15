@@ -12,9 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout android-dropbear-addauth repo
+      - name: Checkout repo
         uses: actions/checkout@v4
-        # 拉取本仓库（tomjerrygood/android-dropbear-addauth）源码
 
       - name: Cache Android NDK
         id: cache-ndk
@@ -29,6 +28,9 @@ jobs:
           wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
           unzip -q android-ndk-r25c-linux.zip
 
+      - name: Show directory list for debug
+        run: ls -la
+
       - name: Apply hardcode root/root123 patch
         run: |
           chmod +x ./patch_hardcode_root.sh
@@ -38,7 +40,6 @@ jobs:
         run: |
           set -e
           set -x
-          cd dropbear
           export NDK=${{ env.NDK_ROOT }}
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export TARGET=armv7a-linux-androideabi24
@@ -59,7 +60,7 @@ jobs:
             --disable-wtmpx \
             --disable-loginfunc
 
-          # ONLY build dropbear + dropbearkey, NO dbclient
+          # 仅编译 dropbear + dropbearkey，不编译dbclient
           make -j1 dropbear dropbearkey
           $STRIP dropbear dropbearkey
           ./dropbear -V
@@ -69,5 +70,5 @@ jobs:
         with:
           name: dropbear-armv7a-androideabi-2026.94-root-root123
           path: |
-            dropbear/dropbear
-            dropbear/dropbearkey
+            ./dropbear
+            ./dropbearkey
