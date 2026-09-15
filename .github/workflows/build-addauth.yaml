@@ -34,11 +34,10 @@ jobs:
       - name: Make build script executable
         run: chmod +x ./build
 
-      - name: Clone dropbear 2024.86 source
+      - name: Clone dropbear 2024.86 source (direct tag)
         run: |
-          git clone https://github.com/mkj/dropbear.git
+          git clone --depth 1 https://github.com/mkj/dropbear.git -b DROPBEAR_2024.86
           cd dropbear
-          git checkout DROPBEAR_2024_86
 
       - name: Patch svr-authpasswd.c inside dropbear folder
         run: |
