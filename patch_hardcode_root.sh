@@ -1,7 +1,7 @@
 #!/bin/bash
 cd dropbear
 
-# 1. 写入localoptions.h：关闭原生密码认证，打开sftp、公钥
+# 1. localoptions.h
 cat > localoptions.h <<'EOF'
 #define DROPBEAR_SVR_PASSWORD_AUTH 0
 #define DROPBEAR_SVR_PUBKEY_AUTH 1
@@ -11,24 +11,25 @@ cat > localoptions.h <<'EOF'
 #define DROPBEAR_UNIX_FORWARDING 0
 EOF
 
-# 2. 打补丁修改 svr-authpasswd.c
-# 这里我们不走dropbear原生password auth框架，直接修改 svr_auth_password 入口
-cat > /tmp/authpatch.txt <<'EOF'
-#include "dropbear.h"
-
-int svr_auth_password(const char *username, const char *password)
-{
-    // Hardcode root / root123
-    if (strcmp(username, "root") == 0 && strcmp(password, "root123") == 0)
-    {
-        return 1;
-    }
-    return 0;
-}
-EOF
-
+# 备份原文件
 cp src/svr-authpasswd.c src/svr-authpasswd.c.orig
-cp /tmp/authpatch.txt src/svr-authpasswd.c
 
-# 关键：修改 sysoptions.h，注释掉 crypt 相关#error，彻底干掉编译阻断
+# 2. 用sed替换svr_auth_password函数内容，保留原有头文件
+# 匹配 int svr_auth_password(...) { ... } 整块替换
+sed '/int svr_auth_password/,/^}/c\
+int svr_auth_password(const char *username, const char *password)\
+{\
+    if (strcmp(username, "root") == 0 && strcmp(password, "root123") == 0)\
+    {\
+        return 1;\
+    }\
+    return 0;\
+}' src/svr-authpasswd.c > src/svr-authpasswd.c.tmp
+
+mv src/svr-authpasswd.c.tmp src/svr-authpasswd.c
+
+# 3. 注释掉crypt() #error
 sed -i 's/#error "DROPBEAR_SVR_PASSWORD_AUTH requires `crypt()`."/\/\/#error "DROPBEAR_SVR_PASSWORD_AUTH requires `crypt()`."/' src/sysoptions.h
+
+# 4. session.c强制开启密码登录分支
+sed -i 's/\!DROPBEAR_SVR_PASSWORD_AUTH/0/g' src/session.c
