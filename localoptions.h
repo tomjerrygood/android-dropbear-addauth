@@ -2,6 +2,7 @@
  * Copyright © 2020-2026 Matt Robinson
  *
  * SPDX-License-Identifier: MIT
+ *
  */
 
 // Disable server password auth as crypt() isn't available under Android
