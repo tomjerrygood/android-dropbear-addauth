@@ -24,7 +24,7 @@ EOF
 # backup
 cp src/svr-authpasswd.c src/svr-authpasswd.c.orig
 
-# 替换svr_auth_password函数，改用awk，避开sed多行跨平台坑
+# 替换svr_auth_password函数，awk稳定版本
 awk '
 BEGIN{infunc=0}
 /int svr_auth_password/{
@@ -48,5 +48,5 @@ mv src/svr-authpasswd.c.tmp src/svr-authpasswd.c
 # comment crypt #error
 sed -i 's/#error "DROPBEAR_SVR_PASSWORD_AUTH requires `crypt()`."/\/\/#error "DROPBEAR_SVR_PASSWORD_AUTH requires `crypt()`."/' src/sysoptions.h
 
-# force password prompt
-sed -i 's/\!DROPBEAR_SVR_PASSWORD_AUTH/0/g' src/session.c
+# 【修复】文件名为 svr-session.c
+sed -i 's/\!DROPBEAR_SVR_PASSWORD_AUTH/0/g' src/svr-session.c
