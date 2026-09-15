@@ -13,17 +13,10 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Cache NDK
-        uses: actions/cache@v4
-        with:
-          path: android-ndk-r25c
-          key: ndk-r25c
-
       - name: Download NDK r25c
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
-          unzip android-ndk-r25c-linux.zip
+          unzip -q android-ndk-r25c-linux.zip
 
       - name: Clone dropbear 2024.86 source AND apply patch
         run: |
