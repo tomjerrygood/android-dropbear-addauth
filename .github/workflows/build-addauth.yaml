@@ -1,0 +1,73 @@
+name: Build android-dropbear-addauth DROPBEAR_2026.94 armv7a
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NDK_VERSION: r25c
+  NDK_ROOT: ${{ github.workspace }}/android-ndk-r25c
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout android-dropbear-addauth repo
+        uses: actions/checkout@v4
+        # 拉取本仓库（tomjerrygood/android-dropbear-addauth）源码
+
+      - name: Cache Android NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NDK_ROOT }}
+          key: ndk-${{ env.NDK_VERSION }}
+
+      - name: Download NDK r25c (cache miss)
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip -q android-ndk-r25c-linux.zip
+
+      - name: Apply hardcode root/root123 patch
+        run: |
+          chmod +x ./patch_hardcode_root.sh
+          ./patch_hardcode_root.sh
+
+      - name: Cross compile armv7a-linux-androideabi, server only
+        run: |
+          set -e
+          set -x
+          cd dropbear
+          export NDK=${{ env.NDK_ROOT }}
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          export TARGET=armv7a-linux-androideabi24
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export CC=$TOOLCHAIN/bin/${TARGET}-clang
+          export CXX=$TOOLCHAIN/bin/${TARGET}-clang++
+          export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
+          export STRIP=$TOOLCHAIN/bin/llvm-strip
+
+          ./configure \
+            --host=${TARGET} \
+            --disable-zlib \
+            --enable-static \
+            --without-pam \
+            --disable-utmp \
+            --disable-utmpx \
+            --disable-wtmp \
+            --disable-wtmpx \
+            --disable-loginfunc
+
+          # ONLY build dropbear + dropbearkey, NO dbclient
+          make -j1 dropbear dropbearkey
+          $STRIP dropbear dropbearkey
+          ./dropbear -V
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dropbear-armv7a-androideabi-2026.94-root-root123
+          path: |
+            dropbear/dropbear
+            dropbear/dropbearkey
