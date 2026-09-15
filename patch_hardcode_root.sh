@@ -1,6 +1,8 @@
 #!/bin/bash
 # patch_hardcode_root.sh
-# tomjerrygood/android-dropbear-addauth，源码在仓库根目录
+# build脚本自动clone dropbear到 ./dropbear
+
+cd dropbear
 
 # 硬编码 root / root123
 cat > /tmp/authpatch.txt <<'EOF'
@@ -18,6 +20,7 @@ EOF
 cp src/svr-authpasswd.c src/svr-authpasswd.c.orig
 cp /tmp/authpatch.txt src/svr-authpasswd.c
 
+# localoptions.h 放到dropbear源码目录
 cat > localoptions.h <<'EOF'
 #define DROPBEAR_SVR_PASSWORD_AUTH 1
 #define DROPBEAR_SVR_PUBKEY_AUTH 1
