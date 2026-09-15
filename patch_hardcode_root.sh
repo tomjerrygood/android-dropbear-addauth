@@ -1,11 +1,8 @@
 #!/bin/bash
 # patch_hardcode_root.sh
-# android-dropbear-addauth，源码在仓库根目录，无dropbear子文件夹
-# Hardcode user=root pass=root123
+# android-dropbear-addauth，源码在仓库根目录
 
-# 当前已经在源码根目录，不要cd dropbear
-
-# 替换 svr-authpasswd.c check_password
+# 替换 svr-authpasswd.c 写死 root / root123
 cat > /tmp/authpatch.txt <<'EOF'
 #include "dropbear.h"
 int check_password(const char *username, const char *password)
@@ -15,15 +12,14 @@ int check_password(const char *username, const char *password)
     {
         return 1; //认证成功
     }
-    return 0; //其他全部拒绝
+    return 0; //其他账号全部拒绝
 }
 EOF
 
-# 备份原文件，写入新代码
 cp src/svr-authpasswd.c src/svr-authpasswd.c.orig
 cp /tmp/authpatch.txt src/svr-authpasswd.c
 
-# 写入localoptions.h，开启密码登录、SFTP
+# localoptions.h
 cat > localoptions.h <<'EOF'
 #define DROPBEAR_SVR_PASSWORD_AUTH 1
 #define DROPBEAR_SVR_PUBKEY_AUTH 1
