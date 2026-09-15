@@ -12,8 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repo AND pull git submodules
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Cache Android NDK
         id: cache-ndk
@@ -29,7 +31,7 @@ jobs:
           unzip -q android-ndk-r25c-linux.zip
 
       - name: Show directory listing
-        run: ls -la
+        run: ls -la && ls -la dropbear/
 
       - name: Apply hardcode root/root123 patch
         run: |
@@ -49,7 +51,7 @@ jobs:
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
 
-          # ribbons仓库直接make，无configure！
+          cd dropbear
           make PROGRAMS="dropbear dropbearkey" MULTI=0
 
           $STRIP dropbear dropbearkey
@@ -60,5 +62,5 @@ jobs:
         with:
           name: dropbear-armv7a-androideabi-2026.94-root-root123
           path: |
-            ./dropbear
-            ./dropbearkey
+            ./dropbear/dropbear
+            ./dropbear/dropbearkey
