@@ -1,4 +1,4 @@
-name: Build android-dropbear-addauth DROPBEAR_2026.94 armv7a
+name: Build android-dropbear-addauth armv7
 on:
   push:
     branches: [ main ]
@@ -12,10 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo AND pull git submodules
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Cache Android NDK
         id: cache-ndk
@@ -24,43 +22,33 @@ jobs:
           path: ${{ env.NDK_ROOT }}
           key: ndk-${{ env.NDK_VERSION }}
 
-      - name: Download NDK r25c (cache miss)
+      - name: Download NDK r25c
         if: steps.cache-ndk.outputs.cache-hit != 'true'
         run: |
           wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
           unzip -q android-ndk-r25c-linux.zip
 
-      - name: Show directory listing
-        run: ls -la && ls -la dropbear/
+      - name: Show dir list
+        run: ls -la
 
-      - name: Apply hardcode root/root123 patch
+      - name: Apply patch
         run: |
           chmod +x ./patch_hardcode_root.sh
           ./patch_hardcode_root.sh
 
-      - name: Cross compile armv7a-androideabi, only dropbear + dropbearkey
+      - name: Run native build script (armv7)
         run: |
           set -e
-          set -x
           export NDK=${{ env.NDK_ROOT }}
-          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          # 目标：armv7a API24（Android9）
           export TARGET=armv7a-linux-androideabi24
-          export AR=$TOOLCHAIN/bin/llvm-ar
-          export CC=$TOOLCHAIN/bin/${TARGET}-clang
-          export CXX=$TOOLCHAIN/bin/${TARGET}-clang++
-          export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
-          export STRIP=$TOOLCHAIN/bin/llvm-strip
+          chmod +x ./build
+          ./build $TARGET
 
-          cd dropbear
-          make PROGRAMS="dropbear dropbearkey" MULTI=0
-
-          $STRIP dropbear dropbearkey
-          ./dropbear -V
-
-      - name: Upload artifact
+      - name: Upload compiled binaries
         uses: actions/upload-artifact@v4
         with:
-          name: dropbear-armv7a-androideabi-2026.94-root-root123
+          name: dropbear-armv7-android9-rootauth
           path: |
-            ./dropbear/dropbear
-            ./dropbear/dropbearkey
+            ./dropbear
+            ./dropbearkey
