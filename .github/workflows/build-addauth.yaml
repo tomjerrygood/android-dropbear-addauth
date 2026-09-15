@@ -28,7 +28,7 @@ jobs:
           wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
           unzip -q android-ndk-r25c-linux.zip
 
-      - name: Show directory list for debug
+      - name: Show directory listing
         run: ls -la
 
       - name: Apply hardcode root/root123 patch
@@ -36,7 +36,7 @@ jobs:
           chmod +x ./patch_hardcode_root.sh
           ./patch_hardcode_root.sh
 
-      - name: Cross compile armv7a-linux-androideabi, server only
+      - name: Cross compile armv7a-androideabi, only dropbear + dropbearkey
         run: |
           set -e
           set -x
@@ -49,19 +49,9 @@ jobs:
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
 
-          ./configure \
-            --host=${TARGET} \
-            --disable-zlib \
-            --enable-static \
-            --without-pam \
-            --disable-utmp \
-            --disable-utmpx \
-            --disable-wtmp \
-            --disable-wtmpx \
-            --disable-loginfunc
+          # ribbons仓库直接make，无configure！
+          make PROGRAMS="dropbear dropbearkey" MULTI=0
 
-          # 仅编译 dropbear + dropbearkey，不编译dbclient
-          make -j1 dropbear dropbearkey
           $STRIP dropbear dropbearkey
           ./dropbear -V
 
