@@ -31,24 +31,42 @@ jobs:
       - name: Show dir list
         run: ls -la
 
-      - name: Apply patch
+      - name: Make build script executable
+        run: chmod +x ./build
+
+      - name: Step1: run build script to clone dropbear source only (stop before compile)
+        run: |
+          set -e
+          export NDK=${{ env.NDK_ROOT }}
+          export TARGET=armv7a-linux-androideabi24
+          # 执行build脚本，它会git clone dropbear到 ./dropbear
+          ./build $TARGET --only-get-source
+
+      - name: Patch svr-authpasswd.c inside dropbear folder
         run: |
           chmod +x ./patch_hardcode_root.sh
           ./patch_hardcode_root.sh
 
-      - name: Run native build script (armv7)
+      - name: Step2: resume compile inside dropbear
         run: |
           set -e
           export NDK=${{ env.NDK_ROOT }}
-          # 目标：armv7a API24（Android9）
           export TARGET=armv7a-linux-androideabi24
-          chmod +x ./build
-          ./build $TARGET
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          export CC=${TOOLCHAIN}/bin/${TARGET}-clang
+          export CXX=${TOOLCHAIN}/bin/${TARGET}-clang++
+          export AR=${TOOLCHAIN}/bin/llvm-ar
+          export RANLIB=${TOOLCHAIN}/bin/llvm-ranlib
+          export STRIP=${TOOLCHAIN}/bin/llvm-strip
+          cd dropbear
+          ./configure --host=${TARGET}
+          make PROGRAMS="dropbear dropbearkey"
+          $STRIP dropbear dropbearkey
 
       - name: Upload compiled binaries
         uses: actions/upload-artifact@v4
         with:
           name: dropbear-armv7-android9-rootauth
           path: |
-            ./dropbear
-            ./dropbearkey
+            ./dropbear/dropbear
+            ./dropbear/dropbearkey
