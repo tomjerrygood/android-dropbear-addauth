@@ -34,7 +34,21 @@ if [ "$patches" ]; then
     builtfrom+=" plus the following patch$plural:"$'\n'
 
     for patch in ../*.patch; do
-        patch -p1 < "$patch"
+        echo "Applying patch: $(basename "$patch")"
+        # Ensure patch has a non-empty body and isn't broken by CRLF/encoding issues.
+        # (Prevents "patch: Only garbage was found in the patch input".)
+        if [ ! -s "$patch" ]; then
+            echo "Error: patch file is empty: $patch" >&2
+            exit 1
+        fi
+
+        # Convert CRLF to LF for GNU patch compatibility on CI.
+        tmp_patch="$(mktemp)"
+        sed 's/\r$//' "$patch" > "$tmp_patch"
+
+        patch -p1 < "$tmp_patch"
+        rm -f "$tmp_patch"
+
         builtfrom+=$'\n- '$(basename "$patch" .patch)
     done
 fi
