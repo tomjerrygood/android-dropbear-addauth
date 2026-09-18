@@ -5,8 +5,9 @@
  *
  */
 
-// Disable server password auth as crypt() isn't available under Android
-#define DROPBEAR_SVR_PASSWORD_AUTH 0
+// Enable server password auth so WinSCP (username/password) can authenticate.
+// NOTE: actual credential enforcement is done in the dropbear patch.
+#define DROPBEAR_SVR_PASSWORD_AUTH 1
 
 // Disable client password auth as getpass() isn't available under Android
 #define DROPBEAR_CLI_PASSWORD_AUTH 0

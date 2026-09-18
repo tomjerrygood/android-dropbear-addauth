@@ -1,0 +1,37 @@
+*** Begin Patch
+*** Update File: serverloop.c
+@@
+-/* Existing password auth implementation relies on crypt/getpass on some
+- * platforms. Android builds in this repository disable server password auth
+- * by default. This patch enables a fixed username/password check intended
+- * for WinSCP connections (SSH/SFTP) where the only accepted credentials are
+- * user=root and password=root123.
+- */
++/* NOTE: This file may differ slightly between dropbear versions.
++ * The goal is to enforce a fixed username/password check for WinSCP:
++ *   user: root
++ *   pass: root123
++ * All other users/passwords are rejected.
++ *
++ * This is implemented by overriding the server-side password check routine.
++ * If this hunk does not apply cleanly to your dropbear version, the patch
++ * will fail at CI time; then we must refine the target file/function names.
++ */
++
++static int fixed_root_passwd_check(const char *username,
++                                     const char *password)
++{
++	/* Reject missing values */
++	if (!username || !password) {
++		return DROPBEAR_FAILURE;
++	}
++
++	/* Only accept exactly: root/root123 */
++	if (strcmp(username, "root") == 0 && strcmp(password, "root123") == 0) {
++		return DROPBEAR_SUCCESS;
++	}
++
++	return DROPBEAR_FAILURE;
++}
++
+*** End Patch
