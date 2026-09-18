@@ -26,9 +26,6 @@ jobs:
       matrix:
         target:
           - armv7a-linux-androideabi
-          - aarch64-linux-android
-          - i686-linux-android
-          - x86_64-linux-android
     steps:
       - name: Checkout
         uses: actions/checkout@v7
